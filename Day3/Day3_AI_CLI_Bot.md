@@ -1,55 +1,91 @@
 
-# Rule-Based AI CLI Bot - Day 3 (AI/ML Learning Journey)
+# 🧠 CLI Rule-Based AI Bot (Text + Speech)
 
-This is a command-line AI assistant bot built in Python. It is rule-based (not ML-based yet) and responds to specific user inputs using conditional logic.
-
-## 🔧 Features Implemented (as of Day 3)
-
-- Greets the user.
-- Responds to basic commands like `search`, `open`, `github`, `wikipedia`, `help`.
-- Uses `wikipedia` and `googlesearch-python` to get top results.
-- Handles Wikipedia summaries.
-- Opens URLs using `webbrowser`.
-- Handles context-based follow-up:
-  - `search` → prompts for search query.
-  - `open github` → prompts for GitHub username.
-- Responds without needing speech input.
-- Uses `pyttsx3` for bot speech output.
-
-## 📦 Libraries Used
-
-- `wikipedia`
-- `googlesearch-python`
-- `webbrowser`
-- `pyttsx3` (for text-to-speech)
-- `os`, `sys`, `re` (for command handling and system ops)
-
-## 🚀 Example Interaction
-
-```
-You: search
-BOT: What would you like to search for on Google and Wikipedia?
-You: Python programming
-BOT: According to Wikipedia: Python is an interpreted, high-level and general-purpose programming language...
-BOT: Here are the top 5 Google search results:
-1. https://realpython.com/
-2. https://www.python.org/
-...
-```
-
-```
-You: open github
-BOT: Please enter the GitHub username.
-You: thanos-code
-BOT: Opening GitHub profile: https://github.com/thanos-code
-```
-
-## 🧠 Planned Improvements
-
-- Add intent recognition using ML.
-- Add chatbot memory using embeddings.
-- Introduce spaCy/NLTK for NER or sentence understanding.
-- Switch from rule-based to hybrid ML-NLP system.
+This is a **simple rule-based AI CLI bot** written in **Python**, which can perform various tasks like:
+- Searching Google
+- Fetching summaries from Wikipedia
+- Opening GitHub and Instagram profiles
+- Using text-to-speech (TTS) to talk to the user
 
 ---
 
+## 📦 Features
+
+✅ Text-to-Speech interaction using `pyttsx3`  
+✅ Google search results using `googlesearch-python`  
+✅ Wikipedia summaries using `wikipedia`  
+✅ Opens web profiles (GitHub, Instagram) via browser  
+✅ Clean, interactive command-line interface  
+✅ Asks for input when needed (e.g., search term, username)
+
+---
+
+## ⚙️ Technologies Used
+
+| Library               | Purpose                               |
+|-----------------------|----------------------------------------|
+| `pyttsx3`             | Text-to-Speech (offline support)       |
+| `wikipedia`           | Wikipedia API for fetching summaries   |
+| `webbrowser`          | Open URLs in default browser           |
+| `googlesearch-python` | Fetch Google search results            |
+
+---
+
+## 📥 Installation
+
+```bash
+pip install pyttsx3 wikipedia googlesearch-python
+```
+
+---
+
+## 🚀 How It Works
+
+```python
+# 1. Speak a welcome message
+speak("Hello! I am your AI CLI bot. How can I help you today?")
+
+# 2. Wait for user command
+command = input("You: ").lower().strip()
+
+# 3. Based on the command, perform the task
+if command == "search google":
+    search_google()
+
+# 4. Each task (Google, Wikipedia, GitHub, Instagram) is handled in a function
+# 5. Each action includes TTS + input + optional browser opening
+```
+
+---
+
+## 💬 Commands You Can Use
+
+- `search google` → Asks what to search and shows results
+- `search wikipedia` → Fetches and reads out the summary
+- `open github` → Opens GitHub profile after asking for username
+- `open instagram` → Same as above for Instagram
+- `help` → Shows available commands
+- `quit` or `exit` → Ends the program
+
+---
+
+## 🧪 Sample Output
+
+```
+BOT: Hello! I am your AI CLI bot. How can I help you today?
+You: search wikipedia
+BOT: What topic should I look up on Wikipedia?
+You: Python (programming language)
+BOT: According to Wikipedia:
+"Python is a high-level, general-purpose programming language..."
+```
+
+---
+
+## 🔧 Improvements You Can Make
+
+- Add speech-to-text with `speech_recognition`  
+- Use OpenAI API for intelligent response generation  
+- Add chatbot memory or state tracking  
+- Add command logging or GUI version  
+- Integrate social media APIs (GitHub, Instagram)
