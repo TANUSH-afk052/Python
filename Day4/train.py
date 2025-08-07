@@ -11,6 +11,11 @@ import traceback
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
+# Import from local files (fixed imports)
+from config import ModelConfig
+from train_tokenizer import BPETokenizer, train_tokenizer
+from transformer import CodeTransformer
+
 def setup_device():
     """Setup and return the best available device"""
     if torch.cuda.is_available():
@@ -21,7 +26,7 @@ def setup_device():
         print("Using Apple Silicon MPS")
     else:
         device = torch.device('cpu')
-        print("Using CPU")
+        print("Using CPU (optimized for your laptop)")
     
     return device
 
@@ -31,8 +36,13 @@ def read_training_data(data_path):
         with open(data_path, 'r', encoding='utf-8') as f:
             return [f.read()]
     else:
-        # Sample Python code data
-        sample_data = '''# Task: Write a Python function to check if a number is even
+        # Use the comprehensive data from python_qa_data.py
+        try:
+            from python_qa_data import PYTHON_QA_PAIRS
+            sample_data = PYTHON_QA_PAIRS
+        except ImportError:
+            # Fallback sample data
+            sample_data = '''# Task: Write a Python function to check if a number is even
 def is_even(n):
     """Check if a number is even."""
     return n % 2 == 0
@@ -94,45 +104,19 @@ def is_prime(n):
         
         return [sample_data]
 
-class ModelConfig:
-    """Model configuration"""
-    def __init__(self):
-        # Model architecture
-        self.vocab_size = 1000
-        self.d_model = 128
-        self.n_heads = 4
-        self.n_layers = 3
-        self.d_ff = 512
-        self.max_seq_len = 256
-        self.dropout = 0.1
-        
-        # Special tokens
-        self.pad_token_id = 0
-        self.unk_token_id = 1
-        self.eos_token_id = 2
-        self.bos_token_id = 3
-        
-        # Training parameters
-        self.learning_rate = 0.001
-        self.batch_size = 4
-        self.num_epochs = 5
-        self.warmup_steps = 100
-        self.weight_decay = 0.01
-        self.checkpoint_dir = "checkpoints"
-
 class CustomDataset:
     """Custom dataset for training"""
-    def __init__(self, encoded_texts, max_length=512):
+    def __init__(self, encoded_texts, max_length=128):
         self.data = []
         for text in encoded_texts:
             if len(text) > max_length:
                 # Split long sequences
                 for i in range(0, len(text), max_length):
                     chunk = text[i:i+max_length]
-                    if len(chunk) > 10:  # Only keep reasonable chunks
+                    if len(chunk) > 5:  # Only keep reasonable chunks
                         self.data.append(chunk)
             else:
-                if len(text) > 10:  # Only keep sequences longer than 10 tokens
+                if len(text) > 5:  # Only keep sequences longer than 5 tokens
                     self.data.append(text)
     
     def __len__(self):
@@ -141,7 +125,7 @@ class CustomDataset:
     def __getitem__(self, idx):
         return self.data[idx]
 
-def collate_fn(batch, pad_token_id=0, max_length=256):
+def collate_fn(batch, pad_token_id=0, max_length=128):
     """Collate function for DataLoader with proper tensor handling"""
     # Filter out any None or empty sequences
     valid_batch = []
@@ -239,7 +223,7 @@ def find_latest_checkpoint(checkpoint_dir):
 
 def train_model(epochs=None, resume=False, checkpoint_path=None):
     """Train the model with improved error handling"""
-    logger.info("Starting training process")
+    logger.info("Starting training process - CPU optimized")
     
     try:
         # Setup
@@ -261,9 +245,6 @@ def train_model(epochs=None, resume=False, checkpoint_path=None):
         
         # Step 1: Load/train tokenizer
         logger.info("Setting up tokenizer...")
-        
-        # Import here to avoid circular imports
-        from train_tokenizer import BPETokenizer, train_tokenizer
         
         if os.path.exists(tokenizer_save_path):
             tokenizer = BPETokenizer()
@@ -311,8 +292,6 @@ def train_model(epochs=None, resume=False, checkpoint_path=None):
         logger.info(f"Dataset ready: {len(dataset)} samples, {len(dataloader)} batches")
         
         # Step 3: Initialize model
-        from transformer import CodeTransformer
-        
         model = CodeTransformer(config).to(device)
         optimizer = torch.optim.AdamW(
             model.parameters(), 
@@ -322,7 +301,7 @@ def train_model(epochs=None, resume=False, checkpoint_path=None):
         
         # Log model info
         total_params = sum(p.numel() for p in model.parameters())
-        logger.info(f"Model initialized with {total_params:,} parameters")
+        logger.info(f"Model initialized with {total_params:,} parameters (CPU optimized)")
         
         # Step 4: Resume from checkpoint if requested
         start_epoch = 0
@@ -389,7 +368,7 @@ def train_model(epochs=None, resume=False, checkpoint_path=None):
                     successful_batches += 1
                     
                     # Log progress
-                    if (batch_idx + 1) % 5 == 0:
+                    if (batch_idx + 1) % 3 == 0:
                         avg_loss = total_loss / successful_batches if successful_batches > 0 else 0
                         logger.info(f"  Batch {batch_idx + 1}/{len(dataloader)}, Avg Loss: {avg_loss:.4f}")
                 
@@ -405,8 +384,9 @@ def train_model(epochs=None, resume=False, checkpoint_path=None):
                 epoch_loss = total_loss / successful_batches
                 logger.info(f"Epoch {epoch + 1} completed - Loss: {epoch_loss:.4f} (from {successful_batches} successful batches)")
                 
-                # Save checkpoint
-                save_checkpoint(model, optimizer, epoch + 1, epoch_loss, config, config.checkpoint_dir)
+                # Save checkpoint every config.save_every epochs
+                if (epoch + 1) % config.save_every == 0:
+                    save_checkpoint(model, optimizer, epoch + 1, epoch_loss, config, config.checkpoint_dir)
                 
                 # Update best loss and save best model
                 if epoch_loss < best_loss:
@@ -436,6 +416,9 @@ def train_model(epochs=None, resume=False, checkpoint_path=None):
             else:
                 logger.warning(f"No successful batches in epoch {epoch + 1}")
         
+        # Final save
+        save_checkpoint(model, optimizer, start_epoch + config.num_epochs, best_loss, config, config.checkpoint_dir)
+        
         logger.info(f"Training completed! Best loss: {best_loss:.4f}")
         logger.info("Model ready for generation. Run: python generate.py")
         
@@ -449,14 +432,14 @@ def train_model(epochs=None, resume=False, checkpoint_path=None):
 def main():
     """Main training interface with command line arguments"""
     parser = argparse.ArgumentParser(description='Train Python Code AI')
-    parser.add_argument('--epochs', type=int, default=5, help='Number of epochs to train (default: 5)')
+    parser.add_argument('--epochs', type=int, default=10, help='Number of epochs to train (default: 10)')
     parser.add_argument('--resume', action='store_true', help='Resume from latest checkpoint')
     parser.add_argument('--checkpoint', type=str, help='Specific checkpoint to resume from')
     
     args = parser.parse_args()
     
     print("="*60)
-    print("Python Code AI - Training")
+    print("Python Code AI - Training (CPU Optimized)")
     print("="*60)
     print(f"Training Configuration:")
     print(f"  Epochs: {args.epochs}")
@@ -468,23 +451,14 @@ def main():
     try:
         train_model(epochs=args.epochs, resume=args.resume, checkpoint_path=args.checkpoint)
         print("\n" + "="*60)
-        print("✅ Training completed successfully!")
-        print("Next steps:")
-        print("  1. Check training status: python pipeline.py status")
-        print("  2. Start generation: python pipeline.py generate")
+        print("Training completed successfully!")
+        print("You can now run: python generate.py --interactive")
         print("="*60)
-        
-    except KeyboardInterrupt:
-        print("\n" + "="*60)
-        print("⚠️ Training interrupted! Your progress has been saved.")
-        print("To resume: python train.py --resume")
-        print("="*60)
-        
     except Exception as e:
-        print("\n" + "="*60)
-        print(f"❌ Training failed: {str(e)}")
-        print("Check the logs for more details.")
-        print("="*60)
+        print(f"\nTraining failed: {e}")
+        logger.error(f"Training failed: {e}")
 
 if __name__ == "__main__":
     main()
+
+
