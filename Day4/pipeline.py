@@ -1,141 +1,69 @@
 #!/usr/bin/env python3
 """
-Simple Python Code AI Pipeline
-Easy training control with checkpoints
+Setup script for Python Code AI - Day 4
 """
-
 import os
+import subprocess
 import sys
-import argparse
 from pathlib import Path
 
-# Add project root to path
-project_root = Path(__file__).parent
-sys.path.append(str(project_root))
+def create_directories():
+    """Create necessary directories"""
+    directories = ['data', 'tokenizer', 'model', 'checkpoints']
+    
+    for directory in directories:
+        Path(directory).mkdir(exist_ok=True)
+        print(f"✓ Created directory: {directory}")
 
-from utils import create_directories, setup_logging
-from train import train_model, find_latest_checkpoint
-
-def setup_project():
-    """Setup project directories"""
-    dirs = [
-        'data', 'model', 'tokenizer', 'checkpoints', 
-        'logs', 'db', 'src', 'src/model', 'src/tokenizer'
-    ]
-    
-    for d in dirs:
-        Path(d).mkdir(parents=True, exist_ok=True)
-    
-    # Create __init__.py files
-    init_content = '# Package marker\n'
-    for init_file in ['src/__init__.py', 'src/model/__init__.py', 'src/tokenizer/__init__.py']:
-        if not Path(init_file).exists():
-            Path(init_file).write_text(init_content)
-
-def train_command(args):
-    """Handle training command"""
-    print(f"Starting training for {args.epochs} epochs...")
-    
-    if args.resume:
-        checkpoint = find_latest_checkpoint('checkpoints')
-        if checkpoint:
-            print(f"Resuming from: {checkpoint}")
-        else:
-            print("No checkpoint found, starting fresh")
-    
+def install_requirements():
+    """Install required packages"""
+    print("Installing requirements...")
     try:
-        train_model(epochs=args.epochs, resume=args.resume, checkpoint_path=args.checkpoint)
-        print("Training completed!")
-        
-    except KeyboardInterrupt:
-        print("\nTraining interrupted - progress saved!")
-        print("Use: python pipeline.py train --resume")
-        
-    except Exception as e:
-        print(f"Training error: {e}")
+        subprocess.check_call([sys.executable, '-m', 'pip', 'install', '-r', 'requirements.txt'])
+        print("✓ Requirements installed successfully")
+    except subprocess.CalledProcessError:
+        print("✗ Failed to install requirements")
+        return False
+    return True
 
-def status_command(args):
-    """Show training status"""
-    checkpoint_dir = Path('checkpoints')
-    
-    if not checkpoint_dir.exists():
-        print("No training started yet")
-        return
-    
-    # Find latest checkpoint
-    latest = find_latest_checkpoint('checkpoints')
-    if latest:
-        import torch
-        checkpoint = torch.load(latest, map_location='cpu')
-        epoch = checkpoint['epoch']
-        loss = checkpoint['loss']
-        
-        print(f"Latest checkpoint: Epoch {epoch}, Loss: {loss:.4f}")
-        print(f"Checkpoint file: {latest}")
-        
-        # List all checkpoints
-        checkpoints = list(checkpoint_dir.glob('checkpoint_epoch_*.pt'))
-        if checkpoints:
-            print(f"\nAvailable checkpoints: {len(checkpoints)}")
-            for cp in sorted(checkpoints)[-5:]:  # Show last 5
-                print(f"  {cp.name}")
+def check_training_data():
+    """Check if training data exists"""
+    data_path = Path('data/train.txt')
+    if data_path.exists():
+        print(f"✓ Training data found: {data_path}")
+        with open(data_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+            print(f"  File size: {len(content)} characters")
     else:
-        print("No checkpoints found")
-
-def generate_command(args):
-    """Handle generation command"""
-    try:
-        from generate import main as generate_main
-        generate_main()
-    except Exception as e:
-        print(f"Generation error: {e}")
-        print("Make sure the model is trained first")
+        print("⚠ No training data found at data/train.txt")
+        print("  The training script will create sample data automatically")
 
 def main():
-    """Main CLI interface"""
-    parser = argparse.ArgumentParser(description='Python Code AI - Simple Pipeline')
-    subparsers = parser.add_subparsers(dest='command', help='Available commands')
+    """Main setup function"""
+    print("="*60)
+    print("Python Code AI - Day 4 Setup")
+    print("="*60)
     
-    # Train command
-    train_parser = subparsers.add_parser('train', help='Train the model')
-    train_parser.add_argument('--epochs', type=int, default=5, 
-                             help='Number of epochs (default: 5)')
-    train_parser.add_argument('--resume', action='store_true', 
-                             help='Resume from latest checkpoint')
-    train_parser.add_argument('--checkpoint', type=str, 
-                             help='Specific checkpoint file to resume from')
+    # Create directories
+    print("\n1. Creating directories...")
+    create_directories()
     
-    # Status command
-    subparsers.add_parser('status', help='Show training status')
+    # Install requirements
+    print("\n2. Installing requirements...")
+    if not install_requirements():
+        sys.exit(1)
     
-    # Generate command
-    subparsers.add_parser('generate', help='Start generation interface')
+    # Check training data
+    print("\n3. Checking training data...")
+    check_training_data()
     
-    # Setup command
-    subparsers.add_parser('setup', help='Setup project structure')
-    
-    args = parser.parse_args()
-    
-    # Setup project first
-    setup_project()
-    
-    if args.command == 'train':
-        train_command(args)
-    elif args.command == 'status':
-        status_command(args)
-    elif args.command == 'generate':
-        generate_command(args)
-    elif args.command == 'setup':
-        print("Project setup completed!")
-    else:
-        # Default: show help and quick start
-        parser.print_help()
-        print("\nQuick Start:")
-        print("1. python pipeline.py setup          # Setup project")
-        print("2. python pipeline.py train --epochs 3   # Train for 3 epochs")
-        print("3. python pipeline.py status         # Check progress")
-        print("4. python pipeline.py train --resume --epochs 2  # Train 2 more")
-        print("5. python pipeline.py generate       # Use the model")
+    print("\n" + "="*60)
+    print("Setup completed successfully!")
+    print("\nNext steps:")
+    print("1. Add your training data to data/train.txt (optional)")
+    print("2. Run: python train.py --epochs 10")
+    print("3. After training: python generate.py --interactive")
+    print("="*60)
 
 if __name__ == "__main__":
     main()
