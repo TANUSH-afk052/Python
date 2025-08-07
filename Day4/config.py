@@ -1,13 +1,13 @@
 class ModelConfig:
-    """Simplified model configuration with controllable training"""
+    """CPU-optimized model configuration for laptop training"""
     def __init__(self):
-        # Model architecture - smaller for faster training
-        self.vocab_size = 1000      # Smaller vocab
-        self.d_model = 128          # Smaller model
-        self.n_heads = 4            # Fewer heads
-        self.n_layers = 3           # Fewer layers
-        self.d_ff = 512             # Smaller FF
-        self.max_seq_len = 256      # Shorter sequences
+        # Model architecture - optimized for CPU training
+        self.vocab_size = 500           # Reduced for faster training
+        self.d_model = 64               # Smaller model dimension
+        self.n_heads = 2                # Fewer attention heads
+        self.n_layers = 2               # Fewer transformer layers
+        self.d_ff = 256                 # Smaller feed-forward dimension
+        self.max_seq_len = 128          # Shorter sequences
         self.dropout = 0.1
         
         # Special tokens
@@ -16,15 +16,15 @@ class ModelConfig:
         self.eos_token_id = 2
         self.bos_token_id = 3
         
-        # Training parameters - CONTROLLABLE
+        # Training parameters - CPU optimized
         self.learning_rate = 0.001
-        self.batch_size = 4         # Smaller batches
-        self.num_epochs = 5         # DEFAULT: Only 5 epochs at a time
-        self.warmup_steps = 100
+        self.batch_size = 2             # Smaller batches for CPU
+        self.num_epochs = 10            # Default 10 epochs as requested
+        self.warmup_steps = 50          # Reduced warmup
         self.weight_decay = 0.01
         
         # Checkpoint settings
-        self.save_every = 1         # Save after every epoch
+        self.save_every = 2             # Save every 2 epochs
         self.checkpoint_dir = "checkpoints"
         
         # Generation parameters
