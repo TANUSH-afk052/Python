@@ -29,80 +29,30 @@ def setup_device():
         print("Using CPU (optimized for your laptop)")
     
     return device
-
 def read_training_data(data_path):
-    """Read training data from file or create sample data"""
-    if os.path.exists(data_path):
-        with open(data_path, 'r', encoding='utf-8') as f:
-            return [f.read()]
-    else:
-        # Use the comprehensive data from python_qa_data.py
-        try:
-            from python_qa_data import PYTHON_QA_PAIRS
-            sample_data = PYTHON_QA_PAIRS
-        except ImportError:
-            # Fallback sample data
-            sample_data = '''# Task: Write a Python function to check if a number is even
-def is_even(n):
-    """Check if a number is even."""
-    return n % 2 == 0
+    """Read training data from file or from python_qa_data.py"""
+    try:
+        from python_qa_data import PYTHON_QA_PAIRS
+        # Ensure we have a list of separate tasks/functions
+        if isinstance(PYTHON_QA_PAIRS, str):
+            samples = PYTHON_QA_PAIRS.strip().split("\n\n")
+        elif isinstance(PYTHON_QA_PAIRS, list):
+            samples = PYTHON_QA_PAIRS
+        else:
+            samples = [str(PYTHON_QA_PAIRS)]
+    except ImportError:
+        samples = ["# No training data found"]
 
-# Task: Python function to find the maximum number in a list
-def find_max(numbers):
-    """Find maximum number in a list."""
-    if not numbers:
-        raise ValueError("List cannot be empty")
-    return max(numbers)
+    # Save to file for persistence
+    os.makedirs(os.path.dirname(data_path), exist_ok=True)
+    with open(data_path, 'w', encoding='utf-8') as f:
+        f.write("\n\n".join(samples))
 
-# Task: Python function to calculate factorial of a number
-def factorial(n):
-    """Calculate factorial using recursion."""
-    if n < 0:
-        raise ValueError("Factorial not defined for negative numbers")
-    if n <= 1:
-        return 1
-    return n * factorial(n - 1)
+    return samples
 
-# Task: Python function to count vowels in a string
-def count_vowels(text):
-    """Count vowels in a string."""
-    vowels = 'aeiouAEIOU'
-    return sum(1 for char in text if char in vowels)
 
-# Task: Python function to generate Fibonacci sequence
-def fibonacci(n):
-    """Generate Fibonacci sequence."""
-    if n <= 0:
-        return []
-    elif n == 1:
-        return [0]
-    
-    sequence = [0, 1]
-    for i in range(2, n):
-        sequence.append(sequence[i-1] + sequence[i-2])
-    return sequence
 
-# Task: Python function to check if a number is prime
-def is_prime(n):
-    """Check if number is prime."""
-    if n < 2:
-        return False
-    if n == 2:
-        return True
-    if n % 2 == 0:
-        return False
-    
-    for i in range(3, int(n ** 0.5) + 1, 2):
-        if n % i == 0:
-            return False
-    return True'''
-        
-        # Create data directory and file
-        os.makedirs(os.path.dirname(data_path), exist_ok=True)
-        with open(data_path, 'w', encoding='utf-8') as f:
-            f.write(sample_data)
-        
-        return [sample_data]
+
 
 class CustomDataset:
     """Custom dataset for training"""
