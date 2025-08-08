@@ -29,6 +29,7 @@ def setup_device():
         print("Using CPU (optimized for your laptop)")
     
     return device
+
 def read_training_data(data_path):
     """Read training data from file or from python_qa_data.py"""
     try:
@@ -49,10 +50,6 @@ def read_training_data(data_path):
         f.write("\n\n".join(samples))
 
     return samples
-
-
-
-
 
 class CustomDataset:
     """Custom dataset for training"""
@@ -141,7 +138,7 @@ def save_checkpoint(model, optimizer, epoch, loss, config, checkpoint_dir):
 
 def load_checkpoint(checkpoint_path, model, optimizer, device):
     """Load training checkpoint"""
-    checkpoint = torch.load(checkpoint_path, map_location=device)
+    checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=False)
     model.load_state_dict(checkpoint['model_state_dict'])
     optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
     
@@ -171,8 +168,8 @@ def find_latest_checkpoint(checkpoint_dir):
     checkpoints.sort(key=lambda x: int(x.stem.split('_')[-1]))
     return str(checkpoints[-1])
 
-def train_model(epochs=None, resume=False, checkpoint_path=None):
-    """Train the model with improved error handling"""
+def train_model(epochs=None, resume=False, checkpoint_path=None, force_retrain_tokenizer=False):
+    """Train the model with improved error handling and forced vocab size"""
     logger.info("Starting training process - CPU optimized")
     
     try:
@@ -193,21 +190,53 @@ def train_model(epochs=None, resume=False, checkpoint_path=None):
         data_path = "data/train.txt"
         tokenizer_save_path = "tokenizer/python_tokenizer.pkl"
         
-        # Step 1: Load/train tokenizer
-        logger.info("Setting up tokenizer...")
+        # Step 1: Load/train tokenizer with FORCED vocab size
+        logger.info(f"Setting up tokenizer with target vocab size: {config.vocab_size}")
         
-        if os.path.exists(tokenizer_save_path):
+        # Force retrain tokenizer if vocab size doesn't match or if requested
+        need_retrain = force_retrain_tokenizer
+        if os.path.exists(tokenizer_save_path) and not force_retrain_tokenizer:
+            try:
+                temp_tokenizer = BPETokenizer()
+                temp_tokenizer.load(tokenizer_save_path)
+                if len(temp_tokenizer.vocab) != config.vocab_size:
+                    logger.warning(f"Existing tokenizer vocab size {len(temp_tokenizer.vocab)} != target {config.vocab_size}")
+                    need_retrain = True
+                else:
+                    logger.info(f"Found existing tokenizer with correct vocab size: {len(temp_tokenizer.vocab)}")
+            except Exception as e:
+                logger.warning(f"Failed to load existing tokenizer: {e}")
+                need_retrain = True
+        else:
+            need_retrain = True
+        
+        if need_retrain:
+            logger.info(f"Training new tokenizer with vocab size: {config.vocab_size}")
+            texts = read_training_data(data_path)
+            tokenizer = train_tokenizer(data_path, tokenizer_save_path, vocab_size=config.vocab_size)
+            
+            # Verify vocab size was achieved
+            actual_vocab_size = len(tokenizer.vocab)
+            if actual_vocab_size != config.vocab_size:
+                logger.error(f"Tokenizer training failed! Expected {config.vocab_size}, got {actual_vocab_size}")
+                # Try again with different parameters
+                logger.info("Attempting tokenizer retraining with adjusted parameters...")
+                tokenizer = train_tokenizer(data_path, tokenizer_save_path, vocab_size=config.vocab_size)
+                actual_vocab_size = len(tokenizer.vocab)
+                
+            logger.info(f"Tokenizer training completed with vocab size: {actual_vocab_size}")
+        else:
             tokenizer = BPETokenizer()
             tokenizer.load(tokenizer_save_path)
             logger.info(f"Loaded existing tokenizer with vocab size: {len(tokenizer.vocab)}")
-        else:
-            logger.info("Training new tokenizer...")
-            texts = read_training_data(data_path)
-            tokenizer = train_tokenizer(data_path, tokenizer_save_path, vocab_size=config.vocab_size)
-            logger.info(f"Trained new tokenizer with vocab size: {len(tokenizer.vocab)}")
         
-        # Update config with actual vocab size
-        config.vocab_size = len(tokenizer.vocab)
+        # Update config with actual vocab size (should match target)
+        actual_vocab_size = len(tokenizer.vocab)
+        if actual_vocab_size != config.vocab_size:
+            logger.warning(f"Updating config vocab_size from {config.vocab_size} to {actual_vocab_size}")
+            config.vocab_size = actual_vocab_size
+        
+        logger.info(f"Final vocab size: {config.vocab_size}")
         
         # Step 2: Prepare data
         logger.info("Preparing training data...")
@@ -241,7 +270,8 @@ def train_model(epochs=None, resume=False, checkpoint_path=None):
         
         logger.info(f"Dataset ready: {len(dataset)} samples, {len(dataloader)} batches")
         
-        # Step 3: Initialize model
+        # Step 3: Initialize model with correct vocab size
+        logger.info(f"Initializing model with vocab_size={config.vocab_size}")
         model = CodeTransformer(config).to(device)
         optimizer = torch.optim.AdamW(
             model.parameters(), 
@@ -251,7 +281,7 @@ def train_model(epochs=None, resume=False, checkpoint_path=None):
         
         # Log model info
         total_params = sum(p.numel() for p in model.parameters())
-        logger.info(f"Model initialized with {total_params:,} parameters (CPU optimized)")
+        logger.info(f"Model initialized with {total_params:,} parameters (vocab_size={config.vocab_size})")
         
         # Step 4: Resume from checkpoint if requested
         start_epoch = 0
@@ -343,7 +373,7 @@ def train_model(epochs=None, resume=False, checkpoint_path=None):
                     best_loss = epoch_loss
                     logger.info(f"New best loss: {best_loss:.4f}")
                     
-                    # Save best model
+                    # Save best model with vocab size info
                     best_model_path = os.path.join(config.checkpoint_dir, 'best_model.pt')
                     torch.save({
                         'model_state_dict': model.state_dict(),
@@ -366,11 +396,26 @@ def train_model(epochs=None, resume=False, checkpoint_path=None):
             else:
                 logger.warning(f"No successful batches in epoch {epoch + 1}")
         
-        # Final save
-        save_checkpoint(model, optimizer, start_epoch + config.num_epochs, best_loss, config, config.checkpoint_dir)
+        # Final save with vocab size verification
+        final_checkpoint_path = save_checkpoint(model, optimizer, start_epoch + config.num_epochs, best_loss, config, config.checkpoint_dir)
         
+        # Verify and log final vocab size
         logger.info(f"Training completed! Best loss: {best_loss:.4f}")
+        logger.info(f"Final model vocab size: {config.vocab_size}")
+        logger.info(f"Final tokenizer vocab size: {len(tokenizer.vocab)}")
+        
+        # Additional verification save
+        verification_path = os.path.join(config.checkpoint_dir, f'final_model_vocab_{len(tokenizer.vocab)}.pt')
+        torch.save({
+            'model_state_dict': model.state_dict(),
+            'tokenizer': tokenizer,
+            'config': config,
+            'vocab_size': len(tokenizer.vocab),
+            'final_loss': best_loss
+        }, verification_path)
+        
         logger.info("Model ready for generation. Run: python generate.py")
+        logger.info(f"Verification model saved to: {verification_path}")
         
         return model, tokenizer
         
@@ -385,6 +430,7 @@ def main():
     parser.add_argument('--epochs', type=int, default=10, help='Number of epochs to train (default: 10)')
     parser.add_argument('--resume', action='store_true', help='Resume from latest checkpoint')
     parser.add_argument('--checkpoint', type=str, help='Specific checkpoint to resume from')
+    parser.add_argument('--retrain-tokenizer', action='store_true', help='Force retrain tokenizer even if exists')
     
     args = parser.parse_args()
     
@@ -394,12 +440,24 @@ def main():
     print(f"Training Configuration:")
     print(f"  Epochs: {args.epochs}")
     print(f"  Resume: {args.resume}")
+    print(f"  Force retrain tokenizer: {args.retrain_tokenizer}")
     if args.checkpoint:
         print(f"  Checkpoint: {args.checkpoint}")
     print("="*60)
     
     try:
-        train_model(epochs=args.epochs, resume=args.resume, checkpoint_path=args.checkpoint)
+        # Show current config vocab size
+        from config import ModelConfig
+        config = ModelConfig()
+        print(f"Target vocabulary size: {config.vocab_size}")
+        print("="*60)
+        
+        train_model(
+            epochs=args.epochs, 
+            resume=args.resume, 
+            checkpoint_path=args.checkpoint,
+            force_retrain_tokenizer=args.retrain_tokenizer
+        )
         print("\n" + "="*60)
         print("Training completed successfully!")
         print("You can now run: python generate.py --interactive")
@@ -410,5 +468,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
