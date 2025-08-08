@@ -1,637 +1,223 @@
-# Task: Write a Python function to check if a number is even
+# Task: Check if a number is even
 def is_even(n):
-    """Check if a number is even."""
     return n % 2 == 0
 
-# Task: Python function to find the maximum number in a list
-def find_max(numbers):
-    """Find maximum number in a list."""
-    if not numbers:
-        raise ValueError("List cannot be empty")
-    return max(numbers)
 
-# Task: Python function to calculate factorial of a number
+# Task: Find maximum number in a list
+def find_max(lst):
+    if not lst:
+        raise ValueError("Empty list")
+    return max(lst)
+
+
+# Task: Calculate factorial using recursion
 def factorial(n):
-    """Calculate factorial using recursion."""
     if n < 0:
-        raise ValueError("Factorial not defined for negative numbers")
-    if n <= 1:
-        return 1
-    return n * factorial(n - 1)
+        raise ValueError("Negative numbers not allowed")
+    return 1 if n <= 1 else n * factorial(n - 1)
 
-# Task: Python function to count vowels in a string
-def count_vowels(text):
-    """Count vowels in a string."""
+
+# Task: Count vowels in a string
+def count_vowels(s):
     vowels = 'aeiouAEIOU'
-    return sum(1 for char in text if char in vowels)
+    return sum(1 for ch in s if ch in vowels)
 
-# Task: Python function to convert Celsius to Fahrenheit
-def celsius_to_fahrenheit(celsius):
-    """Convert Celsius to Fahrenheit."""
-    return (celsius * 9/5) + 32
 
-# Task: Python function to check if a string contains only digits
-def is_numeric(text):
-    """Check if string contains only digits."""
-    return text.isdigit() if text else False
-
-# Task: Python function to remove duplicates from a list
-def remove_duplicates(lst):
-    """Remove duplicates while preserving order."""
-    seen = set()
-    result = []
-    for item in lst:
-        if item not in seen:
-            seen.add(item)
-            result.append(item)
-    return result
-
-# Task: Python function to generate Fibonacci sequence up to n terms
+# Task: Generate Fibonacci sequence
 def fibonacci(n):
-    """Generate Fibonacci sequence."""
     if n <= 0:
         return []
-    elif n == 1:
-        return [0]
-    
-    sequence = [0, 1]
-    for i in range(2, n):
-        sequence.append(sequence[i-1] + sequence[i-2])
-    return sequence
+    seq = [0, 1]
+    for _ in range(2, n):
+        seq.append(seq[-1] + seq[-2])
+    return seq[:n]
 
-# Task: Python function to calculate the area of a circle
-import math
 
-def circle_area(radius):
-    """Calculate circle area."""
-    if radius < 0:
-        raise ValueError("Radius cannot be negative")
-    return math.pi * radius ** 2
-
-# Task: Python function to check if a number is prime
+# Task: Check if number is prime
 def is_prime(n):
-    """Check if number is prime using optimized algorithm."""
     if n < 2:
         return False
-    if n == 2:
-        return True
-    if n % 2 == 0:
-        return False
-    
-    for i in range(3, int(n ** 0.5) + 1, 2):
+    for i in range(2, int(n**0.5) + 1):
         if n % i == 0:
             return False
     return True
 
-# Task: Python function to count words in a string
-def count_words(text):
-    """Count words in a string."""
-    return len(text.split()) if text.strip() else 0
 
-# Task: Python function to merge two lists
-def merge_lists(list1, list2):
-    """Merge two lists."""
-    return list1 + list2
+# Task: Reverse a string
+def reverse_string(s):
+    return s[::-1]
 
-# Task: Python function to calculate square root
-def square_root(n):
-    """Calculate square root with error handling."""
-    if n < 0:
-        raise ValueError("Cannot calculate square root of negative number")
-    return math.sqrt(n)
 
-# Task: Python function to convert string to lowercase
-def to_lower(text):
-    """Convert string to lowercase."""
-    return text.lower()
+# Task: Check if string is palindrome
+def is_palindrome(s):
+    s = s.lower().replace(" ", "")
+    return s == s[::-1]
 
-# Task: Python function to check if list is empty
-def is_empty(lst):
-    """Check if list is empty."""
-    return len(lst) == 0
 
-# Task: Python function to get current date and time
-from datetime import datetime
+# Task: Sum of digits of a number
+def sum_of_digits(n):
+    return sum(int(d) for d in str(abs(n)))
 
-def get_current_datetime():
-    """Get current date and time."""
-    return datetime.now()
 
-# Task: Python function to calculate power of a number
-def power(base, exponent):
-    """Calculate power of a number."""
-    return base ** exponent
+# Task: Find GCD of two numbers
+def gcd(a, b):
+    while b:
+        a, b = b, a % b
+    return a
 
-# Task: Python function to find length of string
-def string_length(text):
-    """Get string length."""
-    return len(text)
 
-# Task: Python function to create dictionary from two lists
-def create_dict(keys, values):
-    """Create dictionary from keys and values lists."""
-    if len(keys) != len(values):
-        raise ValueError("Keys and values lists must have same length")
-    return dict(zip(keys, values))
+# Task: Find LCM of two numbers
+def lcm(a, b):
+    return abs(a * b) // gcd(a, b)
 
-# Task: Python function to sort list in ascending order
-def sort_ascending(lst):
-    """Sort list in ascending order."""
-    return sorted(lst)
 
-# Task: Python function to get absolute value
-def absolute(n):
-    """Get absolute value."""
-    return abs(n)
+# Task: Remove duplicates from a list
+def remove_duplicates(lst):
+    return list(dict.fromkeys(lst))
 
-# Task: Python function to check if key exists in dictionary
-def key_exists(dictionary, key):
-    """Check if key exists in dictionary."""
-    return key in dictionary
 
-# Task: Python function to replace substring in string
-def replace_substring(text, old, new):
-    """Replace substring in string."""
-    return text.replace(old, new)
+# Task: Find second largest number
+def second_largest(lst):
+    uniq = sorted(set(lst), reverse=True)
+    if len(uniq) < 2:
+        raise ValueError("Not enough unique numbers")
+    return uniq[1]
 
-# Task: Python function to check if number is negative
-def is_negative(n):
-    """Check if number is negative."""
-    return n < 0
 
-# Task: Python function to concatenate strings
-def concat_strings(str1, str2):
-    """Concatenate two strings."""
-    return str1 + str2
+# Task: Merge two dictionaries
+def merge_dicts(d1, d2):
+    return {**d1, **d2}
 
-# Task: Python function to convert integer to string
-def int_to_string(n):
-    """Convert integer to string."""
-    return str(n)
 
-# Task: Python function to get keys from dictionary
-def get_keys(dictionary):
-    """Get all keys from dictionary."""
-    return list(dictionary.keys())
-
-# Task: Python function to check if string is empty
-def is_empty_string(text):
-    """Check if string is empty."""
-    return len(text.strip()) == 0
-
-# Task: Python function to get values from dictionary
-def get_values(dictionary):
-    """Get all values from dictionary."""
-    return list(dictionary.values())
-
-# Task: Python function to convert list to string
-def list_to_string(lst, separator=' '):
-    """Convert list to string with custom separator."""
-    return separator.join(map(str, lst))
-
-# Task: Python function to check if number is zero
-def is_zero(n):
-    """Check if number is zero."""
-    return n == 0
-
-# Task: Python function to get first element of list
-def get_first(lst):
-    """Get first element of list safely."""
-    return lst[0] if lst else None
-
-# Task: Python function to solve Two Sum problem
-def two_sum(nums, target):
-    """Solve Two Sum problem efficiently."""
-    num_map = {}
-    for i, num in enumerate(nums):
-        complement = target - num
-        if complement in num_map:
-            return [num_map[complement], i]
-        num_map[num] = i
-    return []
-
-# Task: Python function to check if a string is a valid palindrome
-def is_valid_palindrome(s):
-    """Check if string is valid palindrome (alphanumeric only)."""
-    cleaned = ''.join(char.lower() for char in s if char.isalnum())
-    return cleaned == cleaned[::-1]
-
-# Task: Python function to find maximum subarray sum (Kadane's algorithm)
-def max_subarray(nums):
-    """Find maximum sum of contiguous subarray."""
-    if not nums:
-        return 0
-    
-    max_sum = current_sum = nums[0]
-    for num in nums[1:]:
-        current_sum = max(num, current_sum + num)
-        max_sum = max(max_sum, current_sum)
-    return max_sum
-
-# Task: Python function to merge two sorted arrays
-def merge_sorted_arrays(nums1, m, nums2, n):
-    """Merge two sorted arrays in-place."""
-    i, j, k = m - 1, n - 1, m + n - 1
-    
-    while j >= 0:
-        if i >= 0 and nums1[i] > nums2[j]:
-            nums1[k] = nums1[i]
-            i -= 1
-        else:
-            nums1[k] = nums2[j]
-            j -= 1
-        k -= 1
-
-# Task: Python function to remove duplicates from sorted array
-def remove_duplicates_sorted(nums):
-    """Remove duplicates from sorted array in-place."""
-    if not nums:
-        return 0
-    
-    write_index = 0
-    for read_index in range(1, len(nums)):
-        if nums[read_index] != nums[write_index]:
-            write_index += 1
-            nums[write_index] = nums[read_index]
-    
-    return write_index + 1
-
-# Task: Python function to find single number in array
-def single_number(nums):
-    """Find single number using XOR operation."""
-    result = 0
-    for num in nums:
-        result ^= num
-    return result
-
-# Task: Python function to find intersection of two arrays
-def intersect_arrays(nums1, nums2):
-    """Find intersection of two arrays."""
+# Task: Count word frequency in a string
+def word_frequency(s):
     from collections import Counter
-    
-    count1, count2 = Counter(nums1), Counter(nums2)
-    result = []
-    
-    for num in count1:
-        if num in count2:
-            result.extend([num] * min(count1[num], count2[num]))
-    
-    return result
+    return dict(Counter(s.split()))
 
-# Task: Python function to move all zeros to end of array
-def move_zeroes(nums):
-    """Move all zeros to end while maintaining order."""
-    write_pos = 0
-    
-    # Move all non-zero elements to the front
-    for read_pos in range(len(nums)):
-        if nums[read_pos] != 0:
-            nums[write_pos] = nums[read_pos]
-            write_pos += 1
-    
-    # Fill remaining positions with zeros
-    while write_pos < len(nums):
-        nums[write_pos] = 0
-        write_pos += 1
 
-# Task: Python function to find majority element
-def majority_element(nums):
-    """Find majority element using Boyer-Moore algorithm."""
-    candidate = None
-    count = 0
-    
-    # Phase 1: Find candidate
-    for num in nums:
-        if count == 0:
-            candidate = num
-        count += 1 if num == candidate else -1
-    
-    return candidate
+# Task: Find common elements in two lists
+def common_elements(l1, l2):
+    return list(set(l1) & set(l2))
 
-# Task: Python function to reverse integer
-def reverse_integer(x):
-    """Reverse integer with overflow check."""
-    INT_MAX = 2**31 - 1
-    INT_MIN = -2**31
-    
-    sign = -1 if x < 0 else 1
-    x = abs(x)
-    result = 0
-    
-    while x:
-        result = result * 10 + x % 10
-        x //= 10
-    
-    result *= sign
-    return result if INT_MIN <= result <= INT_MAX else 0
 
-# Task: Python function to find missing number in array
-def missing_number(nums):
-    """Find missing number using mathematical formula."""
-    n = len(nums)
-    expected_sum = n * (n + 1) // 2
-    actual_sum = sum(nums)
-    return expected_sum - actual_sum
+# Task: Convert Celsius to Fahrenheit
+def c_to_f(c):
+    return (c * 9/5) + 32
 
-# Task: Python function to check if two strings are anagrams
-def is_anagram(s, t):
-    """Check if two strings are anagrams."""
-    if len(s) != len(t):
-        return False
-    
-    from collections import Counter
-    return Counter(s) == Counter(t)
 
-# Task: Python function to find first unique character in string
-def first_unique_char(s):
-    """Find index of first unique character."""
-    from collections import Counter
-    
-    char_count = Counter(s)
-    for i, char in enumerate(s):
-        if char_count[char] == 1:
-            return i
-    
-    return -1
+# Task: Convert Fahrenheit to Celsius
+def f_to_c(f):
+    return (f - 32) * 5/9
 
-# Task: Python function to check if string contains all unique characters
-def is_unique_chars(s):
-    """Check if string has all unique characters."""
-    return len(s) == len(set(s))
 
-# Task: Python function to rotate array to right by k steps
-def rotate_array_right(nums, k):
-    """Rotate array to right by k steps."""
-    n = len(nums)
-    k = k % n
-    
-    # Reverse entire array
-    nums.reverse()
-    # Reverse first k elements
-    nums[:k] = reversed(nums[:k])
-    # Reverse remaining elements
-    nums[k:] = reversed(nums[k:])
-
-# Task: Python function to find longest common prefix of strings
-def longest_common_prefix(strs):
-    """Find longest common prefix among strings."""
-    if not strs:
-        return ""
-    
-    min_len = min(len(s) for s in strs)
-    
-    for i in range(min_len):
-        char = strs[0][i]
-        if not all(s[i] == char for s in strs):
-            return strs[0][:i]
-    
-    return strs[0][:min_len]
-
-# Task: Python function to check if parentheses are valid
-def is_valid_parentheses(s):
-    """Check if parentheses are properly balanced."""
-    stack = []
-    mapping = {')': '(', '}': '{', ']': '['}
-    
-    for char in s:
-        if char in mapping:
-            if not stack or stack.pop() != mapping[char]:
-                return False
+# Task: Flatten a nested list
+def flatten_list(nested):
+    flat = []
+    for i in nested:
+        if isinstance(i, list):
+            flat.extend(flatten_list(i))
         else:
-            stack.append(char)
-    
-    return not stack
+            flat.append(i)
+    return flat
 
-# Task: Python function to find peak element in array
-def find_peak_element(nums):
-    """Find peak element using binary search."""
-    left, right = 0, len(nums) - 1
-    
-    while left < right:
-        mid = (left + right) // 2
-        if nums[mid] < nums[mid + 1]:
-            left = mid + 1
-        else:
-            right = mid
-    
-    return left
 
-# Task: Python function to check if number is happy number
-def is_happy_number(n):
-    """Check if number is happy using cycle detection."""
-    def get_sum_of_squares(num):
-        total = 0
-        while num:
-            digit = num % 10
-            total += digit * digit
-            num //= 10
-        return total
-    
-    seen = set()
-    while n != 1 and n not in seen:
-        seen.add(n)
-        n = get_sum_of_squares(n)
-    
-    return n == 1
+# Task: Calculate area of a circle
+def area_circle(radius):
+    import math
+    return math.pi * radius ** 2
 
-# Task: Python function to implement binary search
-def binary_search(arr, target):
-    """Implement binary search algorithm."""
-    left, right = 0, len(arr) - 1
-    
-    while left <= right:
-        mid = (left + right) // 2
-        if arr[mid] == target:
-            return mid
-        elif arr[mid] < target:
-            left = mid + 1
-        else:
-            right = mid - 1
-    
-    return -1
 
-# Task: Python function to implement quicksort
-def quicksort(arr):
-    """Implement quicksort algorithm."""
-    if len(arr) <= 1:
-        return arr
-    
-    pivot = arr[len(arr) // 2]
-    left = [x for x in arr if x < pivot]
-    middle = [x for x in arr if x == pivot]
-    right = [x for x in arr if x > pivot]
-    
-    return quicksort(left) + middle + quicksort(right)
+# Task: Check if year is leap year
+def is_leap_year(year):
+    return year % 4 == 0 and (year % 100 != 0 or year % 400 == 0)
 
-# Task: Python function to find longest substring without repeating characters
-def longest_unique_substring(s):
-    """Find length of longest substring without repeating characters."""
-    char_map = {}
-    left = 0
-    max_length = 0
-    
-    for right in range(len(s)):
-        if s[right] in char_map and char_map[s[right]] >= left:
-            left = char_map[s[right]] + 1
-        
-        char_map[s[right]] = right
-        max_length = max(max_length, right - left + 1)
-    
-    return max_length
 
-# Task: Python class to implement a simple calculator
-class Calculator:
-    """Simple calculator with basic operations."""
-    
-    @staticmethod
-    def add(a, b):
-        return a + b
-    
-    @staticmethod
-    def subtract(a, b):
-        return a - b
-    
-    @staticmethod
-    def multiply(a, b):
-        return a * b
-    
-    @staticmethod
-    def divide(a, b):
-        if b == 0:
-            raise ValueError("Cannot divide by zero")
-        return a / b
-    
-    @staticmethod
-    def power(base, exponent):
-        return base ** exponent
+# Task: Find longest word in a sentence
+def longest_word(sentence):
+    words = sentence.split()
+    return max(words, key=len)
 
-# Task: Python class to implement a stack
-class Stack:
-    """Stack implementation using list."""
-    
-    def __init__(self):
-        self.items = []
-    
-    def push(self, item):
-        self.items.append(item)
-    
-    def pop(self):
-        if self.is_empty():
-            raise IndexError("Stack is empty")
-        return self.items.pop()
-    
-    def peek(self):
-        if self.is_empty():
-            raise IndexError("Stack is empty")
-        return self.items[-1]
-    
-    def is_empty(self):
-        return len(self.items) == 0
-    
-    def size(self):
-        return len(self.items)
 
-# Task: Python class to implement a queue
-from collections import deque
+# Task: Convert list to string
+def list_to_string(lst):
+    return "".join(map(str, lst))
 
-class Queue:
-    """Queue implementation using deque."""
-    
-    def __init__(self):
-        self.items = deque()
-    
-    def enqueue(self, item):
-        self.items.append(item)
-    
-    def dequeue(self):
-        if self.is_empty():
-            raise IndexError("Queue is empty")
-        return self.items.popleft()
-    
-    def front(self):
-        if self.is_empty():
-            raise IndexError("Queue is empty")
-        return self.items[0]
-    
-    def is_empty(self):
-        return len(self.items) == 0
-    
-    def size(self):
-        return len(self.items)
 
-# Task: Python function to read file content
-def read_file(filename):
-    """Read file content safely."""
-    try:
-        with open(filename, 'r', encoding='utf-8') as f:
-            return f.read()
-    except FileNotFoundError:
-        raise FileNotFoundError(f"File {filename} not found")
-    except IOError as e:
-        raise IOError(f"Error reading file: {e}")
+# Task: Find all factors of a number
+def factors(n):
+    return [i for i in range(1, n+1) if n % i == 0]
 
-# Task: Python function to write content to file
-def write_file(filename, content):
-    """Write content to file safely."""
-    try:
-        with open(filename, 'w', encoding='utf-8') as f:
-            f.write(content)
-    except IOError as e:
-        raise IOError(f"Error writing file: {e}")
 
-# Task: Python function to append content to file
-def append_file(filename, content):
-    """Append content to file safely."""
-    try:
-        with open(filename, 'a', encoding='utf-8') as f:
-            f.write(content)
-    except IOError as e:
-        raise IOError(f"Error appending to file: {e}")
+# Task: Check if number is Armstrong
+def is_armstrong(n):
+    s = str(n)
+    p = len(s)
+    return sum(int(d) ** p for d in s) == n
 
-# Task: Python function to check if file exists
-def file_exists(filename):
-    """Check if file exists."""
-    from pathlib import Path
-    return Path(filename).exists()
 
-# Task: Python function to create directory
-def create_directory(dir_name):
-    """Create directory if it doesn't exist."""
-    from pathlib import Path
-    Path(dir_name).mkdir(parents=True, exist_ok=True)
+# Task: Sort dictionary by value
+def sort_dict_by_value(d):
+    return dict(sorted(d.items(), key=lambda x: x[1]))
 
-# Task: Python function to list files in directory
-def list_files(directory, extension=None):
-    """List files in directory with optional extension filter."""
-    from pathlib import Path
-    
-    path = Path(directory)
-    if not path.exists():
-        raise FileNotFoundError(f"Directory {directory} not found")
-    
-    if extension:
-        return [f.name for f in path.iterdir() if f.is_file() and f.suffix == extension]
-    else:
-        return [f.name for f in path.iterdir() if f.is_file()]
 
-# Task: Python function to parse JSON from file
-import json
+# Task: Get unique characters in a string
+def unique_chars(s):
+    return "".join(sorted(set(s)))
 
-def parse_json_file(filename):
-    """Parse JSON from file with error handling."""
-    try:
-        with open(filename, 'r', encoding='utf-8') as f:
-            return json.load(f)
-    except FileNotFoundError:
-        raise FileNotFoundError(f"File {filename} not found")
-    except json.JSONDecodeError as e:
-        raise ValueError(f"Invalid JSON in file: {e}")
 
-# Task: Python function to write JSON to file
-def write_json_file(filename, data):
-    """Write data to JSON file."""
-    try:
-        with open(filename, 'w', encoding='utf-8') as f:
-            json.dump(data, f, indent=2, ensure_ascii=False)
-    except IOError as e:
-        raise IOError(f"Error writing JSON file: {e}")
+# Task: Find missing number in sequence
+def find_missing(nums):
+    n = len(nums) + 1
+    return n * (n + 1) // 2 - sum(nums)
+
+
+# Task: Replace spaces with underscores
+def replace_spaces(s):
+    return s.replace(" ", "_")
+
+
+# Task: Check if two strings are anagrams
+def is_anagram(s1, s2):
+    return sorted(s1.lower()) == sorted(s2.lower())
+
+
+# Task: Sum of even numbers in list
+def sum_even(lst):
+    return sum(x for x in lst if x % 2 == 0)
+
+
+# Task: Multiply all numbers in list
+def multiply_list(lst):
+    from functools import reduce
+    return reduce(lambda x, y: x * y, lst, 1)
+
+
+# Task: Find smallest number in list
+def smallest(lst):
+    return min(lst)
+
+
+# Task: Get first n prime numbers
+def first_n_primes(n):
+    primes = []
+    num = 2
+    while len(primes) < n:
+        if is_prime(num):
+            primes.append(num)
+        num += 1
+    return primes
+
+
+# Task: Count uppercase letters in string
+def count_upper(s):
+    return sum(1 for ch in s if ch.isupper())
+
+
+# Task: Count lowercase letters in string
+def count_lower(s):
+    return sum(1 for ch in s if ch.islower())
+
+
+# Task: Calculate power of number
+def power(base, exp):
+    return base ** exp
