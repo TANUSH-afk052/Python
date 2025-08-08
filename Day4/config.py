@@ -2,7 +2,7 @@ class ModelConfig:
     """CPU-optimized model configuration for laptop training"""
     def __init__(self):
         # Model architecture - optimized for CPU training
-        self.vocab_size = 500           # Reduced for faster training
+        self.vocab_size = 1500           # Reduced for faster training
         self.d_model = 64               # Smaller model dimension
         self.n_heads = 2                # Fewer attention heads
         self.n_layers = 2               # Fewer transformer layers
