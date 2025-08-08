@@ -7,7 +7,7 @@ from pathlib import Path
 logger = logging.getLogger(__name__)
 
 class BPETokenizer:
-    """Byte-Pair Encoding tokenizer optimized for Python code"""
+    """Byte-Pair Encoding tokenizer optimized for Python code with guaranteed vocab size"""
     
     def __init__(self):
         self.vocab = {}
@@ -58,9 +58,80 @@ class BPETokenizer:
             prev_char = char
         return pairs
     
-    def train(self, texts, vocab_size=500, min_frequency=2):
-        """Train BPE tokenizer on texts"""
-        logger.info("Starting tokenizer training...")
+    def _expand_vocabulary_with_subwords(self, texts, target_vocab_size):
+        """Expand vocabulary by adding common subwords and n-grams"""
+        logger.info("Expanding vocabulary with subwords and n-grams...")
+        
+        # Extract all tokens from texts
+        all_tokens = []
+        for text in texts:
+            tokens = self._get_word_tokens(text)
+            all_tokens.extend(tokens)
+        
+        # Count token frequencies
+        token_freq = Counter(all_tokens)
+        
+        # Add most frequent tokens that aren't already in vocab
+        added_tokens = 0
+        for token, freq in token_freq.most_common():
+            if len(self.vocab) >= target_vocab_size:
+                break
+            if token not in self.vocab and len(token) > 1:
+                self.vocab[token] = len(self.vocab)
+                added_tokens += 1
+        
+        logger.info(f"Added {added_tokens} frequent tokens to vocabulary")
+        
+        # Generate n-grams for remaining slots
+        if len(self.vocab) < target_vocab_size:
+            logger.info("Generating n-grams to fill remaining vocabulary slots...")
+            
+            # Extract character n-grams (2-4 characters)
+            ngrams = Counter()
+            for token in all_tokens:
+                if len(token) >= 2:
+                    # 2-grams
+                    for i in range(len(token) - 1):
+                        ngrams[token[i:i+2]] += token_freq[token]
+                    # 3-grams
+                    for i in range(len(token) - 2):
+                        ngrams[token[i:i+3]] += token_freq[token]
+                    # 4-grams
+                    if len(token) >= 4:
+                        for i in range(len(token) - 3):
+                            ngrams[token[i:i+4]] += token_freq[token]
+            
+            # Add most frequent n-grams
+            for ngram, freq in ngrams.most_common():
+                if len(self.vocab) >= target_vocab_size:
+                    break
+                if ngram not in self.vocab and freq >= 2:  # Only add if appears at least twice
+                    self.vocab[ngram] = len(self.vocab)
+        
+        # Fill remaining slots with character combinations if needed
+        if len(self.vocab) < target_vocab_size:
+            logger.info("Adding character combinations to reach target vocab size...")
+            
+            # Get all unique characters
+            all_chars = set()
+            for text in texts:
+                all_chars.update(text)
+            all_chars = sorted(list(all_chars))
+            
+            # Generate 2-character combinations
+            for i, char1 in enumerate(all_chars):
+                for j, char2 in enumerate(all_chars):
+                    if len(self.vocab) >= target_vocab_size:
+                        break
+                    combo = char1 + char2
+                    if combo not in self.vocab:
+                        self.vocab[combo] = len(self.vocab)
+                if len(self.vocab) >= target_vocab_size:
+                    break
+    
+    def train(self, texts, vocab_size=1500, min_frequency=1):
+        """Train BPE tokenizer on texts with guaranteed vocab size"""
+        logger.info(f"Starting tokenizer training with target vocab size: {vocab_size}")
         
         # Initialize vocabulary with special tokens
         self.vocab = {token: i for i, token in enumerate(self.special_tokens)}
@@ -70,7 +141,11 @@ class BPETokenizer:
         word_freqs = defaultdict(int)
         all_chars = set()
         
-        for text in texts:
+        logger.info("Processing training texts...")
+        for i, text in enumerate(texts):
+            if i % 100 == 0:
+                logger.info(f"Processing text {i+1}/{len(texts)}")
+            
             tokens = self._get_word_tokens(text)
             for token in tokens:
                 # Convert token to list of characters
@@ -80,20 +155,24 @@ class BPETokenizer:
                     all_chars.update(chars)
         
         # Add individual characters to vocabulary
+        logger.info(f"Adding {len(all_chars)} unique characters to vocabulary")
         for char in sorted(all_chars):
             if char not in self.vocab:
                 self.vocab[char] = current_vocab_size
                 current_vocab_size += 1
         
-        logger.info(f"Found {len(all_chars)} unique characters")
+        logger.info(f"Current vocab size after characters: {len(self.vocab)}")
         
-        # Perform BPE merges
-        num_merges = vocab_size - current_vocab_size
-        logger.info(f"Performing {num_merges} merges...")
+        # Perform BPE merges with reduced min_frequency for better coverage
+        remaining_slots = vocab_size - current_vocab_size
+        logger.info(f"Performing BPE merges to fill {remaining_slots} remaining slots...")
         
-        for merge_count in range(num_merges):
-            if merge_count % 50 == 0 and merge_count > 0:
-                logger.info(f"Completed {merge_count}/{num_merges} merges")
+        # Use lower min_frequency to get more merges
+        effective_min_frequency = max(1, min_frequency // 2)
+        
+        for merge_count in range(remaining_slots):
+            if merge_count % 100 == 0 and merge_count > 0:
+                logger.info(f"Completed {merge_count}/{remaining_slots} merges")
             
             # Count all pairs
             pairs = defaultdict(int)
@@ -104,14 +183,17 @@ class BPETokenizer:
                         pairs[pair] += freq
             
             if not pairs:
-                logger.info(f"No more pairs to merge. Stopping at {merge_count} merges.")
+                logger.info(f"No more pairs to merge. Breaking at {merge_count} merges.")
                 break
             
             # Find most frequent pair
             best_pair = max(pairs, key=pairs.get)
-            if pairs[best_pair] < min_frequency:
-                logger.info(f"Most frequent pair has frequency {pairs[best_pair]} < {min_frequency}. Stopping.")
-                break
+            if pairs[best_pair] < effective_min_frequency:
+                logger.info(f"Best pair frequency {pairs[best_pair]} < {effective_min_frequency}. Reducing threshold.")
+                effective_min_frequency = max(1, effective_min_frequency - 1)
+                if effective_min_frequency < 1:
+                    logger.info("Reached minimum frequency threshold. Breaking.")
+                    break
             
             # Merge the best pair
             new_word_freqs = {}
@@ -137,11 +219,24 @@ class BPETokenizer:
                 current_vocab_size += 1
                 self.merges[best_pair] = new_token
         
+        logger.info(f"BPE merges completed. Current vocab size: {len(self.vocab)}")
+        
+        # If we still haven't reached target vocab size, expand with subwords
+        if len(self.vocab) < vocab_size:
+            logger.info(f"Expanding vocabulary from {len(self.vocab)} to {vocab_size}")
+            self._expand_vocabulary_with_subwords(texts, vocab_size)
+        
         # Create bidirectional mappings
         self.token_to_id = self.vocab
         self.id_to_token = {id: token for token, id in self.vocab.items()}
         
-        logger.info(f"Tokenizer training completed. Final vocab size: {len(self.vocab)}")
+        logger.info(f"Tokenizer training completed! Final vocab size: {len(self.vocab)}")
+        
+        # Verify we reached target size
+        if len(self.vocab) != vocab_size:
+            logger.warning(f"Target vocab size {vocab_size} not reached. Final size: {len(self.vocab)}")
+        else:
+            logger.info(f"Successfully reached target vocab size: {vocab_size}")
         
     def _apply_merges(self, tokens):
         """Apply learned merges to a list of tokens"""
@@ -179,28 +274,28 @@ class BPETokenizer:
             if not tokens:
                 return []
             
-            # Convert to character level
-            char_tokens = []
-            for token in tokens:
-                char_tokens.extend(list(token))
-            
-            # Apply BPE merges
-            merged_tokens = self._apply_merges(char_tokens)
-            
-            # Convert to IDs
+            # First try to find complete tokens in vocabulary
             token_ids = []
-            for token in merged_tokens:
+            for token in tokens:
                 if token in self.token_to_id:
                     token_ids.append(self.token_to_id[token])
                 else:
-                    # Use UNK token for unknown tokens
-                    token_ids.append(self.token_to_id.get('<unk>', 1))
+                    # Convert to character level and apply BPE
+                    char_tokens = list(token)
+                    merged_tokens = self._apply_merges(char_tokens)
+                    
+                    for merged_token in merged_tokens:
+                        if merged_token in self.token_to_id:
+                            token_ids.append(self.token_to_id[merged_token])
+                        else:
+                            # Use UNK token for unknown tokens
+                            token_ids.append(self.token_to_id.get('<unk>', 1))
             
             return token_ids
             
         except Exception as e:
             logger.warning(f"Encoding failed for text: {text[:50]}... Error: {e}")
-            return []
+            return [self.token_to_id.get('<unk>', 1)]
     
     def decode(self, token_ids):
         """Decode token IDs back to text"""
@@ -237,7 +332,7 @@ class BPETokenizer:
         with open(path, 'wb') as f:
             pickle.dump(data, f)
         
-        logger.info(f"Tokenizer saved to {path}")
+        logger.info(f"Tokenizer saved to {path} with vocab size: {len(self.vocab)}")
     
     def load(self, path):
         """Load tokenizer from file"""
@@ -251,7 +346,7 @@ class BPETokenizer:
             self.id_to_token = data['id_to_token']
             self.special_tokens = data['special_tokens']
             
-            logger.info(f"Tokenizer loaded from {path}")
+            logger.info(f"Tokenizer loaded from {path} with vocab size: {len(self.vocab)}")
             
         except Exception as e:
             logger.error(f"Failed to load tokenizer: {e}")
@@ -262,13 +357,26 @@ class BPETokenizer:
         """Return vocabulary size"""
         return len(self.vocab)
 
-def train_tokenizer(data_path, save_path, vocab_size=500):
-    """Train and save a BPE tokenizer"""
+def train_tokenizer(data_path, save_path, vocab_size=1500):
+    """Train and save a BPE tokenizer with guaranteed vocab size"""
     # Read training data
     try:
         with open(data_path, 'r', encoding='utf-8') as f:
             text = f.read()
-        texts = [text]
+        
+        # Split into multiple texts for better training
+        texts = []
+        # Split by functions/classes for better vocabulary coverage
+        function_splits = text.split('def ')
+        for split in function_splits:
+            if split.strip():
+                texts.append('def ' + split if not split.startswith('def') else split)
+        
+        # Also add the full text for context
+        texts.append(text)
+        
+        logger.info(f"Training on {len(texts)} text segments")
+        
     except FileNotFoundError:
         logger.error(f"Training data file not found: {data_path}")
         raise
@@ -276,9 +384,16 @@ def train_tokenizer(data_path, save_path, vocab_size=500):
     # Create save directory
     Path(save_path).parent.mkdir(parents=True, exist_ok=True)
     
-    # Train tokenizer
+    # Train tokenizer with explicit vocab size
     tokenizer = BPETokenizer()
-    tokenizer.train(texts, vocab_size=vocab_size)
+    tokenizer.train(texts, vocab_size=vocab_size, min_frequency=1)
+    
+    # Verify vocab size
+    actual_vocab_size = len(tokenizer.vocab)
+    logger.info(f"Trained tokenizer with vocab size: {actual_vocab_size}")
+    
+    if actual_vocab_size < vocab_size:
+        logger.warning(f"Vocab size {actual_vocab_size} is less than target {vocab_size}")
     
     # Save tokenizer
     tokenizer.save(save_path)
